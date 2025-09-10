@@ -1,5 +1,5 @@
 {
-	"name": "fb-chat-api-temp",
+	"name": "fca-rx",
 	"version": "1.0.4",
 	"description": "A Facebook chat API that doesn't rely on XMPP",
 	"scripts": {
