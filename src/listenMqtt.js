@@ -24,7 +24,6 @@ const topics = [
 	//Need to publish /messenger_sync_create_queue right after this
 	"/orca_presence",
 	//Will receive /sr_res right here.
-
 	"/legacy_web_mtouch"
 	// "/inbox",
 	// "/mercury",
@@ -39,6 +38,7 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 	//TODO: Move to ctx when implemented
 	const chatOn = ctx.globalOptions.online;
 	const foreground = false;
+	const cid = utils.getGUID();
 
 	const sessionID = Math.floor(Math.random() * 9007199254740991) + 1;
 	const username = {
@@ -46,7 +46,7 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 		s: sessionID,
 		chat_on: chatOn,
 		fg: foreground,
-		d: utils.getGUID(),
+		d: cid,
 		ct: "websocket",
 		//App id from facebook
 		aid: "219994525426954",
@@ -66,7 +66,7 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 
 	let host;
 	if (ctx.mqttEndpoint) {
-		host = `${ctx.mqttEndpoint}&sid=${sessionID}`;
+		host = `${ctx.mqttEndpoint}&sid=${sessionID}&cid=${cid}`;
 	} else if (ctx.region) {
 		host = `wss://edge-chat.facebook.com/chat?region=${ctx.region.toLocaleLowerCase()}&sid=${sessionID}`;
 	} else {
@@ -104,7 +104,7 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 	const mqttClient = ctx.mqttClient;
 
 	mqttClient.on('error', function (err) {
-		log.error("listenMqtt", err);
+		log.error("ERROR", err);
 		mqttClient.end();
 		if (ctx.globalOptions.autoReconnect) {
 			listenMqtt(defaultFuncs, api, ctx, globalCallback);
@@ -126,8 +126,31 @@ function listenMqtt(defaultFuncs, api, ctx, globalCallback) {
 	});
 
 	mqttClient.on('close', function () {
-
+		log.error("CLOSE", "Client closed");
+		mqttClient.end();
+		globalCallback({
+			type: "close",
+			error: "Client closed"
+		}, null)
 	});
+
+	mqttClient.on('offline', () => {
+		log.error("OFFLINE", "Client went offline");
+		mqttClient.end();
+		globalCallback({
+			type: "offline",
+			error: "Client went offline, closing"
+		}, null)
+	})
+
+	mqttClient.on('disconnect', (packet) => {
+		log.error("DISCONNECT", "Received disconnect packet");
+		mqttClient.end();
+		globalCallback({
+			type: "disconnect",
+			error: "Client disconnected"
+		}, null)
+	})
 
 	mqttClient.on('connect', function () {
 		topics.forEach(function (topicsub) {
@@ -748,7 +771,7 @@ function getSeqId(defaultFuncs, api, ctx, globalCallback) {
 	utils
 		.get('https://www.facebook.com/', jar, null, ctx.globalOptions, { noRef: true })
 		.then(utils.saveCookies(jar))
-		.then(function (resData) {
+		.then(async function (resData) {
 			const html = resData.body;
 			const oldFBMQTTMatch = html.match(/irisSeqID:"(.+?)",appID:219994525426954,endpoint:"(.+?)"/);
 			let mqttEndpoint = null;
@@ -769,10 +792,14 @@ function getSeqId(defaultFuncs, api, ctx, globalCallback) {
 					region = new URL(mqttEndpoint).searchParams.get("region").toUpperCase();
 					log.info("login", `Got this account's message region: ${region}`);
 				} else {
-					const legacyFBMQTTMatch = html.match(/(\["MqttWebConfig",\[\],{fbid:")(.+?)(",appID:219994525426954,endpoint:")(.+?)(",pollingEndpoint:")(.+?)(3790])/);
+					const legacyFBMQTTMatch = html.match(/(\["MqttWebConfig",\[\],\{"fbid":")(.+?)(","appID":219994525426954,"endpoint":")(.+?)(","pollingEndpoint":")(.+?)(","subscribedTopics".*3790])/);
 					if (legacyFBMQTTMatch) {
-						mqttEndpoint = legacyFBMQTTMatch[4];
+						mqttEndpoint = legacyFBMQTTMatch[4]?.replaceAll("\\", "");
 						region = new URL(mqttEndpoint).searchParams.get("region").toUpperCase();
+						let dtsgTokenMatch = html.match(/\[\"DTSGInitialData\",\[\],\{\"token\":\"(.+?)\"/);
+						if(dtsgTokenMatch) {
+							ctx.fb_dtsg = dtsgTokenMatch[1];
+						}
 						log.warn("login", `Cannot get sequence ID with new RegExp. Fallback to old RegExp (without seqID)...`);
 						log.info("login", `Got this account's message region: ${region}`);
 						log.info("login", `[Unused] Polling endpoint: ${legacyFBMQTTMatch[6]}`);
@@ -782,14 +809,34 @@ function getSeqId(defaultFuncs, api, ctx, globalCallback) {
 					}
 				}
 			}
-
 			ctx.lastSeqId = irisSeqID;
+			if(!irisSeqID) {
+				if(!ctx.fb_dtsg) {
+					log.warn("seqId", "fb_dtsg token is required for getting seqId");
+				}
+				let seqId = await utils
+					.post('https://www.facebook.com/api/graphql/', jar, {
+						'av': ctx.userID,
+						'fb_dtsg': ctx.fb_dtsg,
+						'jazoest': Math.ceil(Math.random() * (99_999 - 10_000) + 10_000),
+						'variables': '{includeSeqID: true, limit: 0}',
+						'server_timestamps': 'true',
+						'doc_id': '1349387578499440' // from https://github.com/fbchat-dev/fbchat/blob/master/fbchat/_listen.py fetch_sequence_id
+					}, ctx.globalOptions, {noRef: true}, true)
+					.then(utils.saveCookies(jar))
+					.then(resData => {
+						return JSON.parse(resData.body)?.['data']?.['viewer']?.['message_threads']?.['sync_sequence_id'];
+					})
+				if(!seqId) {
+					log.warn("seqId", "could not get seqId from graphql endpoint");
+				}
+				ctx.lastSeqId = seqId;
+			}
 			ctx.mqttEndpoint = mqttEndpoint;
 			ctx.region = region;
 			if (noMqttData) {
 				api["htmlData"] = noMqttData;
 			}
-
 			listenMqtt(defaultFuncs, api, ctx, globalCallback);
 		})
 		.catch(function (err) {
