@@ -17,7 +17,7 @@
 		"api",
 		"fca",
 		"fb-chat-api",
-		"fb-chat-api-temp"
+		"fca-rx"
 	],
 	"bugs": {
 		"url": "https://github.com/ntkhang03/fb-chat-api-temp/issues"
