@@ -1,91 +1,54 @@
 {
-  "name": "fca-rx",
-  "version": "10.2.3",
-  "description": "Facebook-chat-api made by Priyansh rajput",
-  "main": "index.js",
-  "scripts": {
-    "test": "mocha",
-    "lint": "./node_modules/.bin/eslint **.js",
-    "prettier": "prettier utils.js src/* --write"
-  },
-  "author": "Priyansh Rajput",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/priyanshu192/try/issues"
-  },
-  "homepage": "https://github.com/priyanshu192/try#readme",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/priyanshu192/try.git"
-  },
-  "dependencies": {
-    "aes-js": "latest",
-    "assert": "latest",
-    "better-sqlite3": "7.4.5",
-    "bluebird": "latest",
-    "chalk": "4.1.2",
-    "cheerio": "latest",
-    "crypto-js": "latest",
-    "express": "latest",
-    "file-url": "^3.0.0",
-    "got": "^11.8.3",
-    "https-proxy-agent": "latest",
-    "is-hexcolor": "^1.0.0",
-    "lodash": "latest",
-    "moment": "^2.29.4",
-    "mqtt": "latest",
-    "npmlog": "latest",
-    "os": "latest",
-    "path": "latest",
-    "pretty-ms": "7.0.1",
-    "readline": "latest",
-    "request": "latest",
-    "semver": "^7.4.0",
-    "sqlite": "4.0.21",
-    "totp-generator": "latest",
-    "uuid": "latest",
-    "encode32": "latest",
-    "tough-cookie": "^4.1.2",
-    "websocket-stream": "latest"
-  },
-  "engines": {
-    "node": ">=14.x <16.x"
-  },
-  "devDependencies": {
-    "eslint": "latest",
-    "mocha": "latest",
-    "prettier": "latest"
-  },
-  "eslintConfig": {
-    "env": {
-      "es6": true,
-      "node": true
+    "name": "fca-rx",
+    "version": "2.0.0",
+    "description": "A Facebook chat api for messenger bots.",
+    "keywords": [
+        "facebook",
+        "chat",
+        "api",
+        "fca",
+        "messenger",
+        "chatbot",
+        "ULLASH",
+        "CYBER-BOT-COMMUNITY",
+        "FCA",
+        "Facebook chat api",
+        "massager bot api",
+        "fca-rx",
+        "ullash-fca"
+    ],
+    "homepage": "",
+    "repository": {
+        "type": "git",
+        "url": ""
     },
-    "extends": "eslint:recommended",
-    "parserOptions": {
-      "sourceType": "module"
+    "license": "MIT",
+    "author": "rX Abdullah",
+    "type": "commonjs",
+    "main": "index.js",
+    "directories": {
+        "test": "test"
     },
-    "rules": {
-      "linebreak-style": [
-        "error",
-        "unix"
-      ],
-      "semi": [
-        "error",
-        "always"
-      ],
-      "no-unused-vars": [
-        1,
-        {
-          "argsIgnorePattern": "^_"
-        }
-      ]
+    "scripts": {
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "axios": "^1.6.5",
+        "bluebird": "^3.7.2",
+        "cheerio": "^0.22.0",
+        "https-proxy-agent": "^4.0.0",
+        "mqtt": "^3.0.0",
+        "node-cron": "^3.0.3",
+        "npmlog": "^7.0.1",
+        "request": "^2.88.2",
+        "websocket-stream": "^5.5.0"
+    },
+    "devDependencies": {
+        "eslint": "^7.5.0",
+        "mocha": "^7.0.1",
+        "prettier": "^1.11.1"
+    },
+    "engines": {
+        "node": ">=10.x"
     }
-  },
-  "keywords": [
-   "Fca rx",
-    "fca-rx",
-    "Priyansh fca",
-    "Priyansh Rajput"
-  ]
 }
